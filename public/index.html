@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Taller Motos — Panel de Gestión</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+    .tab-active { background-color: #0f172a; color: #ffffff; }
+    .tab-inactive { color: #475569; }
+    .tab-inactive:hover { background-color: #f1f5f9; color: #0f172a; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen">
+  <!-- Top Header -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-lg bg-slate-900 text-white flex items-center justify-center shrink-0">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-base sm:text-lg font-bold text-slate-900 leading-tight">Taller Motos</h1>
+          <p class="text-xs text-slate-500">Gestión de base de datos <span class="font-mono text-slate-700">taller_motos</span></p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button id="btn-export-sql" type="button" class="px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-100 transition">
+          Exportar SQL
+        </button>
+        <button id="btn-reset-demo" type="button" class="px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-100 transition">
+          Restaurar demo
+        </button>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 pb-2 overflow-x-auto">
+      <nav id="main-nav" class="flex items-center gap-1.5 min-w-max">
+        <button data-tab="resumen" class="nav-tab px-3 py-1.5 rounded-lg text-sm font-medium transition tab-active">Resumen</button>
+        <button data-tab="citas" class="nav-tab px-3 py-1.5 rounded-lg text-sm font-medium transition tab-inactive">Citas y Detalles</button>
+        <button data-tab="motos" class="nav-tab px-3 py-1.5 rounded-lg text-sm font-medium transition tab-inactive">Motos</button>
+        <button data-tab="servicios" class="nav-tab px-3 py-1.5 rounded-lg text-sm font-medium transition tab-inactive">Servicios</button>
+        <button data-tab="mecanicos" class="nav-tab px-3 py-1.5 rounded-lg text-sm font-medium transition tab-inactive">Mecánicos</button>
+        <button data-tab="usuarios" class="nav-tab px-3 py-1.5 rounded-lg text-sm font-medium transition tab-inactive">Usuarios</button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+    <!-- TAB: RESUMEN -->
+    <section id="view-resumen" class="tab-view space-y-6">
+      <div id="kpi-grid" class="grid grid-cols-2 lg:grid-cols-4 gap-4"></div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="px-5 py-4 border-b border-slate-200 flex items-center justify-between gap-2">
+            <div>
+              <h2 class="text-sm font-semibold text-slate-900">Agenda de Citas</h2>
+              <p class="text-xs text-slate-500">Últimas citas registradas y acceso rápido a sus detalles</p>
+            </div>
+            <button id="btn-quick-cita" type="button" class="px-3 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-medium hover:bg-slate-800 transition">
+              + Nueva Cita
+            </button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead class="bg-slate-50 text-slate-600 text-xs uppercase">
+                <tr>
+                  <th class="px-4 py-3 font-medium">ID</th>
+                  <th class="px-4 py-3 font-medium">Fecha / Hora</th>
+                  <th class="px-4 py-3 font-medium">Cliente</th>
+                  <th class="px-4 py-3 font-medium">Moto</th>
+                  <th class="px-4 py-3 font-medium">Mecánico</th>
+                  <th class="px-4 py-3 font-medium">Estado</th>
+                  <th class="px-4 py-3 font-medium text-right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="resumen-citas-body" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-4">
+          <h2 class="text-sm font-semibold text-slate-900">Estado del Taller</h2>
+          <div id="estado-breakdown" class="space-y-3"></div>
+          <div class="pt-3 border-t border-slate-100">
+            <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Mecánicos Activos</h3>
+            <div id="resumen-mecanicos" class="space-y-2"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB: CITAS Y DETALLES -->
+    <section id="view-citas" class="tab-view hidden space-y-4">
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex flex-wrap items-center gap-2 flex-1 min-w-[220px]">
+          <input id="search-citas" type="text" placeholder="Buscar por placa, cliente u observaciones..." class="w-full sm:w-72 px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-900" />
+          <select id="filter-estado-cita" class="px-3 py-2 text-sm rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900">
+            <option value="">Todos los estados</option>
+            <option value="Pendiente">Pendiente</option>
+            <option value="Confirmada">Confirmada</option>
+            <option value="En proceso">En proceso</option>
+            <option value="Completada">Completada</option>
+            <option value="Rechazada">Rechazada</option>
+          </select>
+        </div>
+        <button id="btn-new-cita" type="button" class="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 transition">
+          + Nueva Cita
+        </button>
+      </div>
+
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-50 text-slate-600 text-xs uppercase">
+              <tr>
+                <th class="px-4 py-3 font-medium">ID</th>
+                <th class="px-4 py-3 font-medium">Fecha / Hora</th>
+                <th class="px-4 py-3 font-medium">Cliente</th>
+                <th class="px-4 py-3 font-medium">Placa / Moto</th>
+                <th class="px-4 py-3 font-medium">Mecánico</th>
+                <th class="px-4 py-3 font-medium">Estado</th>
+                <th class="px-4 py-3 font-medium text-right">Total Acordado</th>
+                <th class="px-4 py-3 font-medium text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="citas-table-body" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB: MOTOS -->
+    <section id="view-motos" class="tab-view hidden space-y-4">
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex flex-wrap items-center justify-between gap-3">
+        <input id="search-motos" type="text" placeholder="Buscar por placa, marca, modelo o cliente..." class="w-full sm:w-80 px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-900" />
+        <button id="btn-new-moto" type="button" class="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 transition">
+          + Registrar Moto
+        </button>
+      </div>
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-50 text-slate-600 text-xs uppercase">
+              <tr>
+                <th class="px-4 py-3 font-medium">Placa (INT)</th>
+                <th class="px-4 py-3 font-medium">Cliente</th>
+                <th class="px-4 py-3 font-medium">Marca</th>
+                <th class="px-4 py-3 font-medium">Modelo</th>
+                <th class="px-4 py-3 font-medium text-right">Cilindraje (cc)</th>
+                <th class="px-4 py-3 font-medium text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="motos-table-body" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB: SERVICIOS -->
+    <section id="view-servicios" class="tab-view hidden space-y-4">
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex flex-wrap items-center justify-between gap-3">
+        <input id="search-servicios" type="text" placeholder="Buscar servicio..." class="w-full sm:w-80 px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-900" />
+        <button id="btn-new-servicio" type="button" class="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 transition">
+          + Nuevo Servicio
+        </button>
+      </div>
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-50 text-slate-600 text-xs uppercase">
+              <tr>
+                <th class="px-4 py-3 font-medium">ID</th>
+                <th class="px-4 py-3 font-medium">Nombre</th>
+                <th class="px-4 py-3 font-medium">Descripción</th>
+                <th class="px-4 py-3 font-medium text-right">Duración (min)</th>
+                <th class="px-4 py-3 font-medium text-right">Precio Base</th>
+                <th class="px-4 py-3 font-medium text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="servicios-table-body" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB: MECANICOS -->
+    <section id="view-mecanicos" class="tab-view hidden space-y-4">
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 class="text-sm font-semibold text-slate-900">Mecánicos registrados</h2>
+          <p class="text-xs text-slate-500">Relación 1:1 con la tabla USUARIO</p>
+        </div>
+        <button id="btn-new-mecanico" type="button" class="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 transition">
+          + Asignar Mecánico
+        </button>
+      </div>
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-50 text-slate-600 text-xs uppercase">
+              <tr>
+                <th class="px-4 py-3 font-medium">ID Mecánico</th>
+                <th class="px-4 py-3 font-medium">Usuario</th>
+                <th class="px-4 py-3 font-medium">Correo</th>
+                <th class="px-4 py-3 font-medium">Especialidad</th>
+                <th class="px-4 py-3 font-medium">Estado</th>
+                <th class="px-4 py-3 font-medium text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="mecanicos-table-body" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB: USUARIOS -->
+    <section id="view-usuarios" class="tab-view hidden space-y-4">
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex flex-wrap items-center justify-between gap-3">
+        <input id="search-usuarios" type="text" placeholder="Buscar por nombre, correo o rol..." class="w-full sm:w-80 px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-900" />
+        <button id="btn-new-usuario" type="button" class="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 transition">
+          + Nuevo Usuario
+        </button>
+      </div>
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-50 text-slate-600 text-xs uppercase">
+              <tr>
+                <th class="px-4 py-3 font-medium">ID</th>
+                <th class="px-4 py-3 font-medium">Nombre</th>
+                <th class="px-4 py-3 font-medium">Correo</th>
+                <th class="px-4 py-3 font-medium">Teléfono</th>
+                <th class="px-4 py-3 font-medium">Rol</th>
+                <th class="px-4 py-3 font-medium text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="usuarios-table-body" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Generic Form Modal -->
+  <div id="modal-backdrop" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-40 hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
+      <div class="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+        <h3 id="modal-title" class="text-base font-semibold text-slate-900">Modal</h3>
+        <button id="modal-close" type="button" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <div id="modal-body" class="p-5 overflow-y-auto space-y-4"></div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm"></div>
+
+  <script>
+    let db = { usuarios: [], mecanicos: [], motos: [], servicios: [], citas: [], detalles_cita: [] };
+    let activeTab = 'resumen';
+
+    async function api(url, options = {}) {
+      const res = await fetch(url, {
+        headers: { 'Content-Type': 'application/json' },
+        ...options
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Error en la petición');
+      return data;
+    }
+
+    async function refreshDB() {
+      try {
+        db = await api('/api/data');
+        db.mecanicos = db.mecanicos.map(m => ({ ...m, activo: Boolean(m.activo) }));
+        renderAll();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    function fmtMoney(val) {
+      return '$' + Number(val || 0).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    }
+
+    function fmtDate(dt) {
+      if (!dt) return '—';
+      return dt.replace('T', ' ');
+    }
+
+    function esc(str) {
+      return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function getUsuario(id) { return db.usuarios.find(u => u.id_usuario === Number(id)); }
+    function getMecanico(id) { return db.mecanicos.find(m => m.id_mecanico === Number(id)); }
+    function getMecanicoNombre(id) {
+      const mec = getMecanico(id);
+      if (!mec) return 'No asignado';
+      const u = getUsuario(mec.id_usuario);
+      return u ? u.nombre_usuario : `Mecánico #${id}`;
+    }
+    function getMoto(placa) { return db.motos.find(m => Number(m.placa) === Number(placa)); }
+    function getCitaTotal(id_cita) {
+      return db.detalles_cita.filter(d => d.id_cita === Number(id_cita)).reduce((sum, d) => sum + Number(d.precio_acordado || 0), 0);
+    }
+
+    function estadoBadge(estado) {
+      const map = {
+        'Pendiente': 'bg-amber-50 text-amber-700 border-amber-200',
+        'Confirmada': 'bg-blue-50 text-blue-700 border-blue-200',
+        'En proceso': 'bg-indigo-50 text-indigo-700 border-indigo-200',
+        'Completada': 'bg-emerald-50 text-emerald-700 border-emerald-200',
+        'Rechazada': 'bg-rose-50 text-rose-700 border-rose-200'
+      };
+      return `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${map[estado] || 'bg-slate-100 text-slate-700 border-slate-200'}">${esc(estado)}</span>`;
+    }
+
+    function showToast(msg, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const el = document.createElement('div');
+      const colors = type === 'error' ? 'bg-rose-600 text-white' : type === 'success' ? 'bg-emerald-600 text-white' : 'bg-slate-900 text-white';
+      el.className = `${colors} px-4 py-2.5 rounded-xl shadow-lg text-sm font-medium transition-opacity duration-300`;
+      el.textContent = msg;
+      container.appendChild(el);
+      setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }, 2800);
+    }
+
+    function openModal(title, html) {
+      document.getElementById('modal-title').textContent = title;
+      document.getElementById('modal-body').innerHTML = html;
+      const backdrop = document.getElementById('modal-backdrop');
+      backdrop.classList.remove('hidden');
+      backdrop.classList.add('flex');
+    }
+
+    function closeModal() {
+      const backdrop = document.getElementById('modal-backdrop');
+      backdrop.classList.add('hidden');
+      backdrop.classList.remove('flex');
+      document.getElementById('modal-body').innerHTML = '';
+    }
+
+    function switchTab(tab) {
+      activeTab = tab;
+      document.querySelectorAll('.nav-tab').forEach(btn => {
+        btn.classList.toggle('tab-active', btn.dataset.tab === tab);
+        btn.classList.toggle('tab-inactive', btn.dataset.tab !== tab);
+      });
+      document.querySelectorAll('.tab-view').forEach(sec => sec.classList.toggle('hidden', sec.id !== `view-${tab}`));
+      renderAll();
+    }
+
+    function renderAll() {
+      renderResumen();
+      renderCitas();
+      renderMotos();
+      renderServicios();
+      renderMecanicos();
+      renderUsuarios();
+    }
+
+    function renderResumen() {
+      const totalCitas = db.citas.length;
+      const pendientes = db.citas.filter(c => c.estado === 'Pendiente' || c.estado === 'Confirmada').length;
+      const mecsActivos = db.mecanicos.filter(m => m.activo).length;
+      const ingresos = db.detalles_cita.reduce((acc, d) => acc + Number(d.precio_acordado || 0), 0);
+
+      document.getElementById('kpi-grid').innerHTML = `
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm"><p class="text-xs font-medium text-slate-500">Total Citas</p><p class="text-2xl font-bold text-slate-900 mt-1">${totalCitas}</p></div>
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm"><p class="text-xs font-medium text-slate-500">Por Atender</p><p class="text-2xl font-bold text-blue-600 mt-1">${pendientes}</p></div>
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm"><p class="text-xs font-medium text-slate-500">Mecánicos Activos</p><p class="text-2xl font-bold text-emerald-600 mt-1">${mecsActivos} <span class="text-xs font-normal text-slate-400">/ ${db.mecanicos.length}</span></p></div>
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm"><p class="text-xs font-medium text-slate-500">Total Acordado</p><p class="text-2xl font-bold text-slate-900 mt-1">${fmtMoney(ingresos)}</p></div>
+      `;
+
+      const sorted = db.citas.slice(0, 6);
+      const tbody = document.getElementById('resumen-citas-body');
+      tbody.innerHTML = sorted.length ? sorted.map(c => {
+        const cli = getUsuario(c.id_cliente);
+        const moto = getMoto(c.placa);
+        return `<tr class="hover:bg-slate-50">
+          <td class="px-4 py-3 font-mono text-xs text-slate-500">#${c.id_cita}</td>
+          <td class="px-4 py-3 whitespace-nowrap text-slate-700">${esc(fmtDate(c.fecha_hora))}</td>
+          <td class="px-4 py-3 font-medium text-slate-900">${esc(cli ? cli.nombre_usuario : 'N/A')}</td>
+          <td class="px-4 py-3 text-slate-600">${esc(c.placa)} ${moto ? `(${esc(moto.marca)})` : ''}</td>
+          <td class="px-4 py-3 text-slate-600">${esc(getMecanicoNombre(c.id_mecanico))}</td>
+          <td class="px-4 py-3">${estadoBadge(c.estado)}</td>
+          <td class="px-4 py-3 text-right"><button data-action="detalle-cita" data-id="${c.id_cita}" class="text-xs font-medium text-slate-700 hover:text-slate-900 underline">Detalles</button></td>
+        </tr>`;
+      }).join('') : `<tr><td colspan="7" class="px-4 py-6 text-center text-slate-400">No hay citas registradas.</td></tr>`;
+
+      const estados = ['Pendiente', 'Confirmada', 'En proceso', 'Completada', 'Rechazada'];
+      document.getElementById('estado-breakdown').innerHTML = estados.map(est => {
+        const count = db.citas.filter(c => c.estado === est).length;
+        const pct = totalCitas ? Math.round((count / totalCitas) * 100) : 0;
+        return `<div><div class="flex justify-between text-xs mb-1"><span class="font-medium text-slate-700">${est}</span><span class="text-slate-500">${count} (${pct}%)</span></div><div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-slate-800 rounded-full" style="width:${pct}%"></div></div></div>`;
+      }).join('');
+
+      document.getElementById('resumen-mecanicos').innerHTML = db.mecanicos.length ? db.mecanicos.map(m => `
+        <div class="flex items-center justify-between text-xs py-1">
+          <div><p class="font-medium text-slate-800">${esc(getMecanicoNombre(m.id_mecanico))}</p><p class="text-slate-500">${esc(m.especialidad || 'General')}</p></div>
+          <span class="px-2 py-0.5 rounded-full font-medium ${m.activo ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'}">${m.activo ? 'Activo' : 'Inactivo'}</span>
+        </div>
+      `).join('') : `<p class="text-xs text-slate-400">Sin mecánicos asignados.</p>`;
+    }
+
+    function renderCitas() {
+      const q = (document.getElementById('search-citas').value || '').toLowerCase();
+      const est = document.getElementById('filter-estado-cita').value;
+      const list = db.citas.filter(c => {
+        if (est && c.estado !== est) return false;
+        if (!q) return true;
+        const cli = getUsuario(c.id_cliente)?.nombre_usuario || '';
+        const mec = getMecanicoNombre(c.id_mecanico);
+        return `${c.id_cita} ${c.placa} ${cli} ${mec} ${c.observaciones || ''}`.toLowerCase().includes(q);
+      });
+      const tbody = document.getElementById('citas-table-body');
+      tbody.innerHTML = list.length ? list.map(c => {
+        const cli = getUsuario(c.id_cliente);
+        const moto = getMoto(c.placa);
+        const total = getCitaTotal(c.id_cita);
+        const detCount = db.detalles_cita.filter(d => d.id_cita === c.id_cita).length;
+        return `<tr class="hover:bg-slate-50">
+          <td class="px-4 py-3 font-mono text-xs text-slate-500">#${c.id_cita}</td>
+          <td class="px-4 py-3 whitespace-nowrap text-slate-700">${esc(fmtDate(c.fecha_hora))}</td>
+          <td class="px-4 py-3 font-medium text-slate-900">${esc(cli ? cli.nombre_usuario : 'N/A')}</td>
+          <td class="px-4 py-3 text-slate-700"><span class="font-mono font-medium">${esc(c.placa)}</span><span class="text-xs text-slate-500 block">${moto ? esc(`${moto.marca} ${moto.modelo}`) : ''}</span></td>
+          <td class="px-4 py-3 text-slate-600">${esc(getMecanicoNombre(c.id_mecanico))}</td>
+          <td class="px-4 py-3">${estadoBadge(c.estado)}${c.motivo_rechazo ? `<p class="text-xs text-rose-600 mt-1 max-w-[180px] truncate">${esc(c.motivo_rechazo)}</p>` : ''}</td>
+          <td class="px-4 py-3 text-right font-medium text-slate-900">${fmtMoney(total)}<span class="block text-xs text-slate-400 font-normal">${detCount} servicio(s)</span></td>
+          <td class="px-4 py-3 text-right whitespace-nowrap space-x-2">
+            <button data-action="detalle-cita" data-id="${c.id_cita}" class="text-xs font-medium text-indigo-600 hover:text-indigo-800">Servicios</button>
+            <button data-action="edit-cita" data-id="${c.id_cita}" class="text-xs font-medium text-slate-600 hover:text-slate-900">Editar</button>
+            <button data-action="delete-cita" data-id="${c.id_cita}" class="text-xs font-medium text-rose-600 hover:text-rose-800">Eliminar</button>
+          </td>
+        </tr>`;
+      }).join('') : `<tr><td colspan="8" class="px-4 py-8 text-center text-slate-400">No se encontraron citas.</td></tr>`;
+    }
+
+    function openCitaForm(editId = null) {
+      const cita = editId ? db.citas.find(c => c.id_cita === Number(editId)) : null;
+      const clientesOpts = db.usuarios.map(u => `<option value="${u.id_usuario}" ${cita && cita.id_cliente === u.id_usuario ? 'selected' : ''}>${esc(u.nombre_usuario)} (${esc(u.rol)})</option>`).join('');
+      const motosOpts = db.motos.map(m => `<option value="${m.placa}" ${cita && Number(cita.placa) === Number(m.placa) ? 'selected' : ''}>${esc(m.placa)} — ${esc(m.marca)} ${esc(m.modelo)}</option>`).join('');
+      const mecsOpts = db.mecanicos.map(m => `<option value="${m.id_mecanico}" ${cita && cita.id_mecanico === m.id_mecanico ? 'selected' : ''}>${esc(getMecanicoNombre(m.id_mecanico))}</option>`).join('');
+      const estados = ['Pendiente', 'Confirmada', 'En proceso', 'Completada', 'Rechazada'];
+      openModal(cita ? `Editar Cita #${cita.id_cita}` : 'Nueva Cita', `
+        <form id="form-cita" class="space-y-3">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div><label class="block text-xs font-medium text-slate-700 mb-1">Cliente</label><select name="id_cliente" required class="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 bg-white">${clientesOpts}</select></div>
+            <div><label class="block text-xs font-medium text-slate-700 mb-1">Moto</label><select name="placa" required class="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 bg-white">${motosOpts}</select></div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div><label class="block text-xs font-medium text-slate-700 mb-1">Mecánico</label><select name="id_mecanico" required class="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 bg-white">${mecsOpts}</select></div>
+            <div><label class="block text-xs font-medium text-slate-700 mb-1">Fecha y Hora</label><input name="fecha_hora" type="datetime-local" required value="${esc(cita ? cita.fecha_hora : '2026-11-14T09:00')}" class="w-full px-3 py-2 text-sm rounded-lg border border-slate-300" /></div>
+          </div>
+          <div><label class="block text-xs font-medium text-slate-700 mb-1">Estado</label><select name="estado" required class="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 bg-white">${estados.map(e => `<option value="${e}" ${cita && cita.estado === e ? 'selected' : ''}>${e}</option>`).join('')}</select></div>
+          <div><label class="block text-xs font-medium text-slate-700 mb-1">Observaciones</label><textarea name="observaciones" maxlength="200" rows="2" class="w-full px-3 py-2 text-sm rounded-lg border border-slate-300">${esc(cita ? cita.observaciones : '')}</textarea></div>
+          <div><label class="block text-xs font-medium text-slate-700 mb-1">Motivo de rechazo</label><input name="motivo_rechazo" maxlength="200" type="text" value="${esc(cita ? cita.motivo_rechazo : '')}" class="w-full px-3 py-2 text-sm rounded-lg border border-slate-300" /></div>
+          <div class="flex justify-end gap-2 pt-2">
+            <button type="button" id="btn-cancel-modal" class="px-4 py-2 text-sm font-medium rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50">Cancelar</button>
+            <button type="submit" class="px-4 py-2 text-sm font-medium rounded-lg bg-slate-900 text-white hover:bg-slate-800">Guardar</button>
+          </div>
+        </form>
+      `);
+      document.getElementById('btn-cancel-modal').addEventListener('click', closeModal);
+      document.getElementById('form-cita').addEventListener('submit', async e => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        const body = {
+          id_cliente: Number(fd.get('id_cliente')),
+          placa: Number(fd.get('placa')),
+          id_mecanico: Number(fd.get('id_mecanico')),
+          fecha_hora: fd.get('fecha_hora'),
+          estado: fd.get('estado'),
+          observaciones: fd.get('observaciones').trim(),
+          motivo_rechazo: fd.get('motivo_rechazo').trim()
+        };
+        try {
+          await api(cita ? `/api/citas/${cita.id_cita}` : '/api/citas', { method: cita ? 'PUT' : 'POST', body: JSON.stringify(body) });
+          showToast(cita ? 'Cita actualizada en MySQL' : 'Cita creada en MySQL', 'success');
+          closeModal();
+          await refreshDB();
+        } catch (err) { showToast(err.message, 'error'); }
+      });
+    }
+
+    function openDetalleCitaModal(id_cita) {
+      const cita = db.citas.find(c => c.id_cita === Number(id_cita));
+      if (!cita) return;
+      const detalles = db.detalles_cita.filter(d => d.id_cita === cita.id_cita);
+      const usados = new Set(detalles.map(d => d.id_servicio));
+      const disponibles = db.servicios.filter(s => !usados.has(s.id_servicio));
+      const total = getCitaTotal(cita.id_cita);
+      const rowsHtml = detalles.length ? detalles.map(d => `
+        <tr class="border-b border-slate-100">
+          <td class="py-2 pr-2 font-medium text-slate-800">${esc(d.nombre_servicio)}</td>
+          <td class="py-2 px-2 text-right font-mono text-slate-700">${fmtMoney(d.precio_acordado)}</td>
+          <td class="py-2 pl-2 text-right"><button data-remove-detalle="${d.id_servicio}" class="text-xs text-rose-600 hover:text-rose-800 font-medium">Quitar</button></td>
+        </tr>`).join('') : `<tr><td colspan="3" class="py-4 text-center text-xs text-slate-400">Sin servicios agregados.</td></tr>`;
+
+      const addSection = disponibles.length ? `
+        <form id="form-add-detalle" class="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2">
+          <p class="text-xs font-semibold text-slate-700">Agregar servicio a DETALLE_CITA</p>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <select id="select-servicio-detalle" class="sm:col-span-2 px-2.5 py-1.5 text-sm rounded-lg border border-slate-300 bg-white">
+              ${disponibles.map(s => `<option value="${s.id_servicio}" data-precio="${s.precio_base}" data-nombre="${esc(s.nombre_servicio)}">${esc(s.nombre_servicio)} (${fmtMoney(s.precio_base)})</option>`).join('')}
+            </select>
+            <input id="input-precio-acordado" type="number" step="0.01" min="0" required value="${disponibles[0].precio_base}" class="px-2.5 py-1.5 text-sm rounded-lg border border-slate-300" />
+          </div>
+          <div class="flex justify-end"><button type="submit" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-900 text-white hover:bg-slate-800">+ Agregar</button></div>
+        </form>` : `<p class="text-xs text-slate-500 bg-slate-50 p-3 rounded-lg">Todos los servicios ya están agregados.</p>`;
+
+      openModal(`Servicios de Cita #${cita.id_cita}`, `
+        <div class="space-y-4">
+          <div class="text-xs text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-200 flex flex-wrap justify-between gap-2">
+            <span><strong>Placa:</strong> ${esc(cita.placa)}</span>
+            <span><strong>Fecha:</strong> ${esc(fmtDate(cita.fecha_hora))}</span>
+            <span><strong>Total:</strong> <span class="font-semibold text-slate-900">${fmtMoney(total)}</span></span>
+          </div>
+          <table class="w-full text-sm"><thead><tr class="text-xs text-slate-500 border-b border-slate-200"><th class="pb-2 text-left font-medium">Servicio</th><th class="pb-2 text-right font-medium">Precio Acordado</th><th class="pb-2 text-right font-medium">Acción</th></tr></thead><tbody>${rowsHtml}</tbody></table>
+          ${addSection}
+        </div>
+      `);
+
+      const sel = document.getElementById('select-servicio-detalle');
+      const priceInput = document.getElementById('input-precio-acordado');
+      if (sel && priceInput) {
+        sel.addEventListener('change', () => { priceInput.value = sel.options[sel.selectedIndex].dataset.precio || 0; });
+        document.getElementById('form-add-detalle').addEventListener('submit', async e => {
+          e.preventDefault();
+          const opt = sel.options[sel.selectedIndex];
+          try {
+            await api('/api/detalles', {
+              method: 'POST',
+              body: JSON.stringify({
+                id_cita: cita.id_cita,
+                fecha_hora: cita.fecha_hora,
+                id_servicio: Number(sel.value),
+                nombre_servicio: opt.dataset.nombre,
+                precio_acordado: Number(priceInput.value)
+              })
+            });
+            showToast('Servicio agregado', 'success');
+            await refreshDB();
+            openDetalleCitaModal(cita.id_cita);
+          } catch (err) { showToast(err.message, 'error'); }
+        });
+      }
+      document.querySelectorAll('[data-remove-detalle]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          try {
+            await api(`/api/detalles/${cita.id_cita}/${btn.dataset.removeDetalle}`, { method: 'DELETE' });
+            showToast('Servicio quitado');
+            await refreshDB();
+            openDetalleCitaModal(cita.id_cita);
+          } catch (err) { showToast(err.message, 'error'); }
+        });
+      });
+    }
+
+    function renderMotos() {
+      const q = (document.getElementById('search-motos').value || '').toLowerCase();
+      const list = db.motos.filter(m => !q || `${m.placa} ${m.marca} ${m.modelo} ${getUsuario(m.id_cliente)?.nombre_usuario || ''}`.toLowerCase().includes(q));
+      const tbody = document.getElementById('motos-table-body');
+      tbody.innerHTML = list.length ? list.map(m => `
+        <tr class="hover:bg-slate-50">
+          <td class="px-4 py-3 font-mono font-semibold text-slate-900">${esc(m.placa)}</td>
+          <td class="px-4 py-3 text-slate-700">${esc(getUsuario(m.id_cliente)?.nombre_usuario || 'N/A')}</td>
+          <td class="px-4 py-3 text-slate-700">${esc(m.marca)}</td>
+          <td class="px-4 py-3 text-slate-700">${esc(m.modelo)}</td>
+          <td class="px-4 py-3 text-right font-mono text-slate-700">${esc(m.cilindraje || '—')}</td>
+          <td class="px-4 py-3 text-right space-x-2">
+            <button data-action="edit-moto" data-id="${m.placa}" class="text-xs font-medium text-slate-600 hover:text-slate-900">Editar</button>
+            <button data-action="delete-moto" data-id="${m.placa}" class="text-xs font-medium text-rose-600 hover:text-rose-800">Eliminar</button>
+          </td>
+        </tr>`).join('') : `<tr><td colspan="6" class="px-4 py-8 text-center text-slate-400">No hay motos registradas.</td></tr>`;
+    }
+
+    function openMotoForm(editPlaca = null) {
+      const moto = editPlaca !== null ? getMoto(editPlaca) : null;
+      const clientesOpts = db.usuarios.map(u => `<option value="${u.id_usuario}" ${moto && moto.id_cliente === u.id_usuario ? 'selected' : ''}>${esc(u.nombre_usuario)}</option>`).join('');
+      openModal(moto ? `Editar Moto ${moto.placa}` : 'Registrar Moto', `
+        <form id="form-moto" class="space-y-3">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div><label class="block text-xs font-medium text-slate-700 mb-1">Placa (INT)</label><input name="placa" type="number" required ${moto ? 'readonly class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 bg-slate-100"' : 'class="w-full px-3 py-2 text-sm rounded-lg border border-slate-300"'} value="${esc(moto ? moto.placa : '')}" /></div>
+            <div><label class="block text-xs font-medium text-slate-700 mb-1">Cliente</label><select name="id_cliente" required class="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 bg-white">${clientesOpts}</select></div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div><label class="block text-xs font-medium text-slate-700 mb-1">Marca</label><input name="marca" type="text" maxlength="30" required value="${esc(moto ? moto.marca : '')}" class="w-full px-3 py-2 text-sm rounded-lg border border-slate-300" /></div>
+            <div><label class="block text-xs font-medium text-slate-700 mb-1">Modelo</label><input name="modelo" type="text" maxlength="30" required value="${esc(moto ? moto.modelo : '')}" class="w-full px-3 py-2 text-sm rounded-lg border border-slate-300" /></div>
+            <div><label class="block text-xs font-medium text-slate-700 mb-1">Cilindraje</label><input name="cilindraje" type="number" max="9999" min="49" value="${esc(moto ? moto.cilindraje : '')}" class="w-full px-3 py-2 text-sm rounded-lg border border-slate-300" /></div>
+          </div>
+          <div class="flex justify-end gap-2 pt-2">
+            <button type="button" id="btn-cancel-modal" class="px-4 py-2 text-sm font-medium rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50">Cancelar</button>
+            <button type="submit" class="px-4 py-2 text-sm font-medium rounded-lg bg-slate-900 text-white hover:bg-slate-800">Guardar</button>
+          </div>
+        </form>
+      `);
+      document.getElementById('btn-cancel-modal').addEventListener('click', closeModal);
+      document.getElementById('form-moto').addEventListener('submit', async e => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        const body = { placa: Number(fd.get('placa')), id_cliente: Number(fd.get('id_cliente')), marca: fd.get('marca').trim(), modelo: fd.get('modelo').trim(), cilindraje: Number(fd.get('cilindraje')) || null };
+        try {
+          await api(moto ? `/api/motos/${moto.placa}` : '/api/motos', { method: moto ? 'PUT' : 'POST', body: JSON.stringify(body) });
+          showToast(moto ? 'Moto actualizada' : 'Moto registrada', 'success');
+          closeModal();
+          await refreshDB();
+        } catch (err) { showToast(err.message, 'error'); }
+      });
+    }
+
+    function renderServicios() {
+      const q = (document.getElementById('search-servicios').value || '').toLowerCase();
+      const list = db.servicios.filter(s => !q || `${s.nombre_servicio} ${s.descripcion || ''}`.toLowerCase().includes(q));
+      const tbody = document.getElementById('servicios-table-body');
+      tbody.innerHTML = list.length ? list.map(s => `
+        <tr class="hover:bg-slate-50">
+          <td class="px-4 py-3 font-mono text-xs text-slate-500">#${s.id_servicio}</td>
+          <td class="px-4 py-3 font-medium text-slate-900">${esc(s.nombre_servicio)}</td>
+          <td class="px-4 py-3 text-slate-600 max-w-xs truncate">${esc(s.descripcion || '—')}</td>
+          <td class="px-4 py-3 text-right font-mono text-slate-700">${esc(s.duracion_min || '—')}</td>
+          <td class="px-4 py-3 text-right font-medium text-slate-900">${fmtMoney(s.precio_base)}</td>
+          <td class="px-4 py-3 text-right space-x-2">
+            <button data-action="edit-servicio" data-id="${s.id_servicio}" class="text-xs font-medium text-slate-600 hover:text-slate-900">Editar</button>
+            <button data-action="delete-servicio" data-id="${s.id_servicio}" class="text-xs font-medium text-rose-600 hover:text-rose-800">Eliminar</button>
+          </td>
+        </tr>`).join('') : `<tr><td colspan="6" class="px-4 py-8 text-center text-slate-400">No hay servicios registrados.</td></tr>`;
+    }
+
+    function openServicioForm(editId = null) {
+      const srv = editId ? db.servicios.find(s => s.id_servicio === Number(editId)) : null;
+      openModal(srv ? `Editar Servicio #${srv.id_servicio}` : 'Nuevo Servicio', `
+        <form id="form-servicio" class="space-y-3">
+          <div><label class="block text-xs font-medium text-slate-700 mb-1">Nombre</label><input name="nombre_servicio" type="text" maxlength="35" required value="${esc(srv ? srv.nombre_servicio : '')}" class="w-full px-3 py-2 text-sm rounded-lg border border-slate-300" /></div>
+          <div><label class="block text-xs font-medium text-slate-700 mb-1">Descripción</label><textarea name="descripcion" maxlength="100" rows="2" class="w-full px-3 py-2 text-sm rounded-lg border border-slate-300">${esc(srv ? srv.descripcion : '')}</textarea></div>
+          <div class="grid grid-cols-2 gap-3">
+            <div><label class="block text-xs font-medium text-slate-700 mb-1">Duración (min)</label><input name="duracion_min" type="number" min="1" max="999" value="${esc(srv ? srv.duracion_min : 60)}" class="w-full px-3 py-2 text-sm rounded-lg border border-slate-300" /></div>
+            <div><label class="block text-xs font-medium text-slate-700 mb-1">Precio Base</label><input name="precio_base" type="number" step="0.01" min="0" required value="${esc(srv ? srv.precio_base : '')}" class="w-full px-3 py-2 text-sm rounded-lg border border-slate-300" /></div>
+          </div>
+          <div class="flex justify-end gap-2 pt-2">
+            <button type="button" id="btn-cancel-modal" class="px-4 py-2 text-sm font-medium rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50">Cancelar</button>
+            <button type="submit" class="px-4 py-2 text-sm font-medium rounded-lg bg-slate-900 text-white hover:bg-slate-800">Guardar</button>
+          </div>
+        </form>
+      `);
+      document.getElementById('btn-cancel-modal').addEventListener('click', closeModal);
+      document.getElementById('form-servicio').addEventListener('submit', async e => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        const body = { nombre_servicio: fd.get('nombre_servicio').trim(), descripcion: fd.get('descripcion').trim(), duracion_min: Number(fd.get('duracion_min')) || null, precio_base: Number(fd.get('precio_base')) };
+        try {
+          await api(srv ? `/api/servicios/${srv.id_servicio}` : '/api/servicios', { method: srv ? 'PUT' : 'POST', body: JSON.stringify(body) });
+          showToast(srv ? 'Servicio actualizado' : 'Servicio creado', 'success');
+          closeModal();
+          await refreshDB();
+        } catch (err) { showToast(err.message, 'error'); }
+      });
+    }
+
+    function renderMecanicos() {
+      const tbody = document.getElementById('mecanicos-table-body');
+      tbody.innerHTML = db.mecanicos.length ? db.mecanicos.map(m => {
+        const u = getUsuario(m.id_usuario);
+        return `<tr class="hover:bg-slate-50">
+          <td class="px-4 py-3 font-mono text-xs text-slate-500">#${m.id_mecanico}</td>
+          <td class="px-4 py-3 font-medium text-slate-900">${esc(u ? u.nombre_usuario : 'N/A')}</td>
+          <td class="px-4 py-3 text-slate-600">${esc(u ? u.correo : '—')}</td>
+          <td class="px-4 py-3 text-slate-700">${esc(m.especialidad || 'General')}</td>
+          <td class="px-4 py-3"><span class="px-2 py-0.5 rounded-full text-xs font-medium ${m.activo ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'}">${m.activo ? 'Activo' : 'Inactivo'}</span></td>
+          <td class="px-4 py-3 text-right space-x-2">
+            <button data-action="edit-mecanico" data-id="${m.id_mecanico}" class="text-xs font-medium text-slate-600 hover:text-slate-900">Editar</button>
+            <button data-action="delete-mecanico" data-id="${m.id_mecanico}" class="text-xs font-medium text-rose-600 hover:text-rose-800">Eliminar</button>
+          </td>
+        </tr>`;
+      }).join('') : `<tr><td colspan="6" class="px-4 py-8 text-center text-slate-400">No hay mecánicos asignados.</td></tr>`;
+    }
+
+    function openMecanicoForm(editId = null) {
+      const mec = editId ? getMecanico(editId) : null;
+      const usados = new Set(db.mecanicos.filter(m => !mec || m.id_mecanico !== mec.id_mecanico).map(m => m.id_usuario));
+      const candidatos = db.usuarios.filter(u => !usados.has(u.id_usuario));
+      if (!candidatos.length) { showToast('Todos los usuarios ya son mecánicos', 'error'); return; }
+      openModal(mec ? `Editar Mecánico #${mec.id_mecanico}` : 'Asignar Mecánico', `
+        <form id="form-mecanico" class="space-y-3">
+          <div><label class="block text-xs font-medium text-slate-700 mb-1">Usuario</label><select name="id_usuario" required class="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 bg-white">${candidatos.map(u => `<option value="${u.id_usuario}" ${mec && mec.id_usuario === u.id_usuario ? 'selected' : ''}>${esc(u.nombre_usuario)} (${esc(u.correo)})</option>`).join('')}</select></div>
+          <div><label class="block text-xs font-medium text-slate-700 mb-1">Especialidad</label><input name="especialidad" type="text" maxlength="40" value="${esc(mec ? mec.especialidad : '')}" class="w-full px-3 py-2 text-sm rounded-lg border border-slate-300" /></div>
+          <label class="flex items-center gap-2 text-sm text-slate-700 pt-1"><input name="activo" type="checkbox" ${!mec || mec.activo ? 'checked' : ''} class="rounded border-slate-300" /> Mecánico activo</label>
+          <div class="flex justify-end gap-2 pt-2">
+            <button type="button" id="btn-cancel-modal" class="px-4 py-2 text-sm font-medium rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50">Cancelar</button>
+            <button type="submit" class="px-4 py-2 text-sm font-medium rounded-lg bg-slate-900 text-white hover:bg-slate-800">Guardar</button>
+          </div>
+        </form>
+      `);
+      document.getElementById('btn-cancel-modal').addEventListener('click', closeModal);
+      document.getElementById('form-mecanico').addEventListener('submit', async e => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        const body = { id_usuario: Number(fd.get('id_usuario')), especialidad: fd.get('especialidad').trim(), activo: fd.get('activo') === 'on' };
+        try {
+          await api(mec ? `/api/mecanicos/${mec.id_mecanico}` : '/api/mecanicos', { method: mec ? 'PUT' : 'POST', body: JSON.stringify(body) });
+          showToast(mec ? 'Mecánico actualizado' : 'Mecánico asignado', 'success');
+          closeModal();
+          await refreshDB();
+        } catch (err) { showToast(err.message, 'error'); }
+      });
+    }
+
+    function renderUsuarios() {
+      const q = (document.getElementById('search-usuarios').value || '').toLowerCase();
+      const list = db.usuarios.filter(u => !q || `${u.nombre_usuario} ${u.correo} ${u.rol}`.toLowerCase().includes(q));
+      const tbody = document.getElementById('usuarios-table-body');
+      tbody.innerHTML = list.length ? list.map(u => `
+        <tr class="hover:bg-slate-50">
+          <td class="px-4 py-3 font-mono text-xs text-slate-500">#${u.id_usuario}</td>
+          <td class="px-4 py-3 font-medium text-slate-900">${esc(u.nombre_usuario)}</td>
+          <td class="px-4 py-3 text-slate-600">${esc(u.correo)}</td>
+          <td class="px-4 py-3 text-slate-600">${esc(u.telefono || '—')}</td>
+          <td class="px-4 py-3"><span class="px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">${esc(u.rol)}</span></td>
+          <td class="px-4 py-3 text-right space-x-2">
+            <button data-action="edit-usuario" data-id="${u.id_usuario}" class="text-xs font-medium text-slate-600 hover:text-slate-900">Editar</button>
+            <button data-action="delete-usuario" data-id="${u.id_usuario}" class="text-xs font-medium text-rose-600 hover:text-rose-800">Eliminar</button>
+          </td>
+        </tr>`).join('') : `<tr><td colspan="6" class="px-4 py-8 text-center text-slate-400">No se encontraron usuarios.</td></tr>`;
+    }
+
+    function openUsuarioForm(editId = null) {
+      const u = editId ? getUsuario(editId) : null;
+      const roles = ['Cliente', 'Mecanico', 'Admin'];
+      openModal(u ? `Editar Usuario #${u.id_usuario}` : 'Nuevo Usuario', `
+        <form id="form-usuario" class="space-y-3">
+          <div><label class="block text-xs font-medium text-slate-700 mb-1">Nombre completo</label><input name="nombre_usuario" type="text" maxlength="40" required value="${esc(u ? u.nombre_usuario : '')}" class="w-full px-3 py-2 text-sm rounded-lg border border-slate-300" /></div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div><label class="block text-xs font-medium text-slate-700 mb-1">Correo</label><input name="correo" type="email" maxlength="50" required value="${esc(u ? u.correo : '')}" class="w-full px-3 py-2 text-sm rounded-lg border border-slate-300" /></div>
+            <div><label class="block text-xs font-medium text-slate-700 mb-1">Teléfono</label><input name="telefono" type="text" maxlength="13" value="${esc(u ? u.telefono : '')}" class="w-full px-3 py-2 text-sm rounded-lg border border-slate-300" /></div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div><label class="block text-xs font-medium text-slate-700 mb-1">Contraseña</label><input name="contrasena" type="password" maxlength="20" required value="${esc(u ? u.contrasena : '')}" class="w-full px-3 py-2 text-sm rounded-lg border border-slate-300" /></div>
+            <div><label class="block text-xs font-medium text-slate-700 mb-1">Rol</label><select name="rol" required class="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 bg-white">${roles.map(r => `<option value="${r}" ${u && u.rol === r ? 'selected' : ''}>${r}</option>`).join('')}</select></div>
+          </div>
+          <div class="flex justify-end gap-2 pt-2">
+            <button type="button" id="btn-cancel-modal" class="px-4 py-2 text-sm font-medium rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50">Cancelar</button>
+            <button type="submit" class="px-4 py-2 text-sm font-medium rounded-lg bg-slate-900 text-white hover:bg-slate-800">Guardar</button>
+          </div>
+        </form>
+      `);
+      document.getElementById('btn-cancel-modal').addEventListener('click', closeModal);
+      document.getElementById('form-usuario').addEventListener('submit', async e => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        const body = { nombre_usuario: fd.get('nombre_usuario').trim(), correo: fd.get('correo').trim(), telefono: fd.get('telefono').trim(), contrasena: fd.get('contrasena'), rol: fd.get('rol') };
+        try {
+          await api(u ? `/api/usuarios/${u.id_usuario}` : '/api/usuarios', { method: u ? 'PUT' : 'POST', body: JSON.stringify(body) });
+          showToast(u ? 'Usuario actualizado' : 'Usuario creado', 'success');
+          closeModal();
+          await refreshDB();
+        } catch (err) { showToast(err.message, 'error'); }
+      });
+    }
+
+    function confirmDelete(label, onConfirm) {
+      openModal('Confirmar eliminación', `
+        <p class="text-sm text-slate-600">¿Seguro que deseas eliminar <strong>${esc(label)}</strong>?</p>
+        <div class="flex justify-end gap-2 pt-3">
+          <button type="button" id="btn-cancel-del" class="px-4 py-2 text-sm font-medium rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50">Cancelar</button>
+          <button type="button" id="btn-confirm-del" class="px-4 py-2 text-sm font-medium rounded-lg bg-rose-600 text-white hover:bg-rose-700">Eliminar</button>
+        </div>
+      `);
+      document.getElementById('btn-cancel-del').addEventListener('click', closeModal);
+      document.getElementById('btn-confirm-del').addEventListener('click', () => { closeModal(); onConfirm(); });
+    }
+
+    document.getElementById('main-nav').addEventListener('click', e => { const btn = e.target.closest('.nav-tab'); if (btn) switchTab(btn.dataset.tab); });
+    document.getElementById('modal-close').addEventListener('click', closeModal);
+    document.getElementById('modal-backdrop').addEventListener('click', e => { if (e.target.id === 'modal-backdrop') closeModal(); });
+    document.getElementById('btn-quick-cita').addEventListener('click', () => openCitaForm());
+    document.getElementById('btn-new-cita').addEventListener('click', () => openCitaForm());
+    document.getElementById('btn-new-moto').addEventListener('click', () => openMotoForm());
+    document.getElementById('btn-new-servicio').addEventListener('click', () => openServicioForm());
+    document.getElementById('btn-new-mecanico').addEventListener('click', () => openMecanicoForm());
+    document.getElementById('btn-new-usuario').addEventListener('click', () => openUsuarioForm());
+
+    // Ocultar botones que eran exclusivos del modo local
+    document.getElementById('btn-export-sql').classList.add('hidden');
+    document.getElementById('btn-reset-demo').textContent = 'Recargar MySQL';
+    document.getElementById('btn-reset-demo').addEventListener('click', refreshDB);
+
+    ['search-citas', 'filter-estado-cita'].forEach(id => {
+      document.getElementById(id).addEventListener('input', renderCitas);
+      document.getElementById(id).addEventListener('change', renderCitas);
+    });
+    document.getElementById('search-motos').addEventListener('input', renderMotos);
+    document.getElementById('search-servicios').addEventListener('input', renderServicios);
+    document.getElementById('search-usuarios').addEventListener('input', renderUsuarios);
+
+    document.querySelector('main').addEventListener('click', e => {
+      const btn = e.target.closest('[data-action]');
+      if (!btn) return;
+      const { action, id } = btn.dataset;
+      if (action === 'detalle-cita') openDetalleCitaModal(id);
+      else if (action === 'edit-cita') openCitaForm(id);
+      else if (action === 'delete-cita') confirmDelete(`la cita #${id}`, async () => { try { await api(`/api/citas/${id}`, { method: 'DELETE' }); showToast('Cita eliminada'); await refreshDB(); } catch (err) { showToast(err.message, 'error'); } });
+      else if (action === 'edit-moto') openMotoForm(id);
+      else if (action === 'delete-moto') confirmDelete(`la moto ${id}`, async () => { try { await api(`/api/motos/${id}`, { method: 'DELETE' }); showToast('Moto eliminada'); await refreshDB(); } catch (err) { showToast(err.message, 'error'); } });
+      else if (action === 'edit-servicio') openServicioForm(id);
+      else if (action === 'delete-servicio') confirmDelete(`el servicio #${id}`, async () => { try { await api(`/api/servicios/${id}`, { method: 'DELETE' }); showToast('Servicio eliminado'); await refreshDB(); } catch (err) { showToast(err.message, 'error'); } });
+      else if (action === 'edit-mecanico') openMecanicoForm(id);
+      else if (action === 'delete-mecanico') confirmDelete(`el mecánico #${id}`, async () => { try { await api(`/api/mecanicos/${id}`, { method: 'DELETE' }); showToast('Mecánico eliminado'); await refreshDB(); } catch (err) { showToast(err.message, 'error'); } });
+      else if (action === 'edit-usuario') openUsuarioForm(id);
+      else if (action === 'delete-usuario') confirmDelete(`el usuario #${id}`, async () => { try { await api(`/api/usuarios/${id}`, { method: 'DELETE' }); showToast('Usuario eliminado'); await refreshDB(); } catch (err) { showToast(err.message, 'error'); } });
+    });
+
+    refreshDB();
+  </script>
+</body>
+</html>
