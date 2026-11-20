@@ -1,7 +1,5 @@
 -- Script DDL para MySQL basado en el diagrama entidad-relación
-DROP DATABASE IF EXISTS taller_motos;
-
-CREATE DATABASE taller_motos
+CREATE DATABASE IF NOT EXISTS taller_motos
   CHARACTER SET utf8mb4
   COLLATE utf8mb4_unicode_ci;
 
@@ -15,7 +13,7 @@ CREATE TABLE USUARIO (
   nombre_usuario VARCHAR(40) NOT NULL,
   correo VARCHAR(50) NOT NULL UNIQUE,
   telefono VARCHAR(13),
-  `contraseña` VARCHAR(20) NOT NULL, -- Ampliar a VARCHAR(255) si se almacenan hashes (ej. bcrypt)
+  `contraseña` VARCHAR(255) NOT NULL, -- Hash scrypt de la contraseña
   rol VARCHAR(13) NOT NULL
 ) ENGINE=InnoDB;
 
@@ -103,4 +101,17 @@ CREATE TABLE DETALLE_CITA (
     FOREIGN KEY (id_servicio) REFERENCES SERVICIO(id_servicio)
     ON DELETE RESTRICT
     ON UPDATE CASCADE
+) ENGINE=InnoDB;
+-- -----------------------------------------------------
+-- Tabla: APP_SESSION (sesiones administrativas)
+-- -----------------------------------------------------
+CREATE TABLE APP_SESSION (
+  token_hash CHAR(64) PRIMARY KEY,
+  id_usuario INT NOT NULL,
+  expires_at DATETIME NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_app_session_expiration (expires_at),
+  CONSTRAINT fk_app_session_usuario
+    FOREIGN KEY (id_usuario) REFERENCES USUARIO(id_usuario)
+    ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB;

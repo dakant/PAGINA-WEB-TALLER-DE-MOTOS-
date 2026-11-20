@@ -35,9 +35,9 @@
         <button id="btn-export-sql" type="button" class="px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-100 transition">
           Exportar SQL
         </button>
-        <button id="btn-reset-demo" type="button" class="px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-100 transition">
-          Restaurar demo
-        </button>
+        <span id="current-user" class="hidden text-xs text-slate-500 sm:inline"></span>
+        <button id="btn-logout" type="button" class="px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-100 transition">Cerrar sesión</button>
+        <button id="btn-reset-demo" type="button" class="px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-100 transition">Restaurar demo</button>
       </div>
     </div>
 
@@ -267,20 +267,41 @@
     </div>
   </div>
 
+  <div id="login-screen" class="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/90 p-4">
+    <form id="login-form" class="w-full max-w-sm space-y-4 rounded-2xl bg-white p-6 shadow-2xl">
+      <div><h2 class="text-xl font-bold text-slate-900">Acceso administrativo</h2><p class="mt-1 text-sm text-slate-500">Inicia sesión para abrir el taller.</p></div>
+      <div><label for="login-email" class="mb-1 block text-sm font-medium text-slate-700">Correo</label><input id="login-email" name="correo" type="email" autocomplete="username" required maxlength="50" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" /></div>
+      <div><label for="login-password" class="mb-1 block text-sm font-medium text-slate-700">Contraseña</label><input id="login-password" name="contrasena" type="password" autocomplete="current-password" required maxlength="128" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" /></div>
+      <p id="login-error" class="hidden text-sm text-rose-600" role="alert"></p>
+      <button type="submit" class="w-full rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800">Entrar</button>
+    </form>
+  </div>
+
   <!-- Toast Notification -->
   <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm"></div>
 
   <script>
     let db = { usuarios: [], mecanicos: [], motos: [], servicios: [], citas: [], detalles_cita: [] };
     let activeTab = 'resumen';
+    let currentUser = null;
+
+    function showLogin(message = '') {
+      document.getElementById('login-screen').classList.remove('hidden');
+      const error = document.getElementById('login-error');
+      error.textContent = message;
+      error.classList.toggle('hidden', !message);
+    }
+    function hideLogin() { document.getElementById('login-screen').classList.add('hidden'); }
 
     async function api(url, options = {}) {
-      const res = await fetch(url, {
-        headers: { 'Content-Type': 'application/json' },
-        ...options
-      });
+      const res = await fetch(url, { credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, ...options });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Error en la petición');
+      if (res.status === 401 && url !== '/api/auth/login') showLogin();
+      if (!res.ok) {
+        const error = new Error(data.error || 'Error en la petición');
+        error.status = res.status;
+        throw error;
+      }
       return data;
     }
 
@@ -290,9 +311,45 @@
         db.mecanicos = db.mecanicos.map(m => ({ ...m, activo: Boolean(m.activo) }));
         renderAll();
       } catch (err) {
-        showToast(err.message, 'error');
+        if (err.status !== 401) showToast(err.message, 'error');
       }
     }
+
+    async function initializeApp() {
+      try {
+        const session = await api('/api/auth/session');
+        currentUser = session.user;
+        if (!currentUser) { showLogin(); return; }
+        document.getElementById('current-user').textContent = currentUser.nombre_usuario;
+        hideLogin();
+        await refreshDB();
+      } catch (_) { showLogin('No se pudo conectar. Revisa el servidor e intenta de nuevo.'); }
+    }
+
+    document.getElementById('login-form').addEventListener('submit', async event => {
+      event.preventDefault();
+      const form = event.currentTarget, values = new FormData(form);
+      const button = form.querySelector('button[type="submit"]');
+      button.disabled = true;
+      button.textContent = 'Ingresando…';
+      try {
+        const result = await api('/api/auth/login', { method: 'POST', body: JSON.stringify({
+          correo: values.get('correo').trim(), contrasena: values.get('contrasena')
+        }) });
+        currentUser = result.user;
+        document.getElementById('current-user').textContent = currentUser.nombre_usuario;
+        form.reset();
+        hideLogin();
+        await refreshDB();
+      } catch (err) { showLogin(err.message); }
+      finally { button.disabled = false; button.textContent = 'Entrar'; }
+    });
+
+    document.getElementById('btn-logout').addEventListener('click', async () => {
+      try { await api('/api/auth/logout', { method: 'POST' }); } catch (_) {}
+      currentUser = null;
+      showLogin();
+    });
 
     function fmtMoney(val) {
       return '$' + Number(val || 0).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
@@ -597,12 +654,12 @@
 
     function openMotoForm(editPlaca = null) {
       const moto = editPlaca !== null ? getMoto(editPlaca) : null;
-      const clientesOpts = db.usuarios.map(u => `<option value="${u.id_usuario}" ${moto && moto.id_cliente === u.id_usuario ? 'selected' : ''}>${esc(u.nombre_usuario)}</option>`).join('');
+      const clientesOpts = db.usuarios.map(u => `<option value="${u.id_usuario}" ${moto && moto.id_cliente === u.id_usuario ? 'selected' : ''}>#${u.id_usuario} — ${esc(u.nombre_usuario)}</option>`).join('');
       openModal(moto ? `Editar Moto ${moto.placa}` : 'Registrar Moto', `
         <form id="form-moto" class="space-y-3">
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div><label class="block text-xs font-medium text-slate-700 mb-1">Placa (INT)</label><input name="placa" type="number" required ${moto ? 'readonly class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 bg-slate-100"' : 'class="w-full px-3 py-2 text-sm rounded-lg border border-slate-300"'} value="${esc(moto ? moto.placa : '')}" /></div>
-            <div><label class="block text-xs font-medium text-slate-700 mb-1">Cliente</label><select name="id_cliente" required class="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 bg-white">${clientesOpts}</select></div>
+            <div><label class="block text-xs font-medium text-slate-700 mb-1">Placa</label><input name="placa" type="number" required ${moto ? 'readonly class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 bg-slate-100"' : 'class="w-full px-3 py-2 text-sm rounded-lg border border-slate-300"'} value="${esc(moto ? moto.placa : '')}" /></div>
+            <div><label class="block text-xs font-medium text-slate-700 mb-1">ID Cliente</label><select name="id_cliente" required class="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 bg-white">${clientesOpts}</select></div>
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div><label class="block text-xs font-medium text-slate-700 mb-1">Marca</label><input name="marca" type="text" maxlength="30" required value="${esc(moto ? moto.marca : '')}" class="w-full px-3 py-2 text-sm rounded-lg border border-slate-300" /></div>
@@ -611,7 +668,7 @@
           </div>
           <div class="flex justify-end gap-2 pt-2">
             <button type="button" id="btn-cancel-modal" class="px-4 py-2 text-sm font-medium rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50">Cancelar</button>
-            <button type="submit" class="px-4 py-2 text-sm font-medium rounded-lg bg-slate-900 text-white hover:bg-slate-800">Guardar</button>
+            <button type="submit" class="px-4 py-2 text-sm font-medium rounded-lg bg-slate-900 text-white hover:bg-slate-800">${moto ? 'Guardar cambios' : 'Registrar Moto'}</button>
           </div>
         </form>
       `);
@@ -754,7 +811,7 @@
             <div><label class="block text-xs font-medium text-slate-700 mb-1">Teléfono</label><input name="telefono" type="text" maxlength="13" value="${esc(u ? u.telefono : '')}" class="w-full px-3 py-2 text-sm rounded-lg border border-slate-300" /></div>
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div><label class="block text-xs font-medium text-slate-700 mb-1">Contraseña</label><input name="contrasena" type="password" maxlength="20" required value="${esc(u ? u.contrasena : '')}" class="w-full px-3 py-2 text-sm rounded-lg border border-slate-300" /></div>
+            <div><label class="block text-xs font-medium text-slate-700 mb-1">Contraseña ${u ? '(opcional al editar)' : '(mínimo 12 caracteres)'}</label><input name="contrasena" type="password" minlength="12" maxlength="128" ${u ? 'placeholder="Deja vacío para conservarla"' : 'required'} class="w-full px-3 py-2 text-sm rounded-lg border border-slate-300" /></div>
             <div><label class="block text-xs font-medium text-slate-700 mb-1">Rol</label><select name="rol" required class="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 bg-white">${roles.map(r => `<option value="${r}" ${u && u.rol === r ? 'selected' : ''}>${r}</option>`).join('')}</select></div>
           </div>
           <div class="flex justify-end gap-2 pt-2">
@@ -767,7 +824,8 @@
       document.getElementById('form-usuario').addEventListener('submit', async e => {
         e.preventDefault();
         const fd = new FormData(e.target);
-        const body = { nombre_usuario: fd.get('nombre_usuario').trim(), correo: fd.get('correo').trim(), telefono: fd.get('telefono').trim(), contrasena: fd.get('contrasena'), rol: fd.get('rol') };
+        const body = { nombre_usuario: fd.get('nombre_usuario').trim(), correo: fd.get('correo').trim(), telefono: fd.get('telefono').trim(), rol: fd.get('rol') };
+        if (fd.get('contrasena')) body.contrasena = fd.get('contrasena');
         try {
           await api(u ? `/api/usuarios/${u.id_usuario}` : '/api/usuarios', { method: u ? 'PUT' : 'POST', body: JSON.stringify(body) });
           showToast(u ? 'Usuario actualizado' : 'Usuario creado', 'success');
@@ -829,7 +887,7 @@
       else if (action === 'delete-usuario') confirmDelete(`el usuario #${id}`, async () => { try { await api(`/api/usuarios/${id}`, { method: 'DELETE' }); showToast('Usuario eliminado'); await refreshDB(); } catch (err) { showToast(err.message, 'error'); } });
     });
 
-    refreshDB();
+    initializeApp();
   </script>
 </body>
 </html>
