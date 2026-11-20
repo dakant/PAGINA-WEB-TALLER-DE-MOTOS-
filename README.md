@@ -24,7 +24,7 @@ Al iniciar, el servidor amplía la columna de contraseña, crea la tabla de sesi
 
 ## Base de datos existente
 
-No vuelvas a ejecutar `taller_motos.sql` sobre una instalación existente. Ese archivo es para una instalación nueva. Ejecuta `migrations/001_seguridad.sql` en la base `taller_motos`, completa las variables `ADMIN_*` si todavía no existe un usuario Admin y reinicia el servidor. El servidor migra automáticamente las contraseñas antiguas a hashes al iniciar.
+No vuelvas a ejecutar `taller_motos.sql` sobre una instalación existente. El servidor amplía la columna, crea la tabla de sesiones y migra las contraseñas antiguas al iniciar. Si prefieres aplicar el cambio de estructura manualmente antes de arrancar, ejecuta `migrations/001_seguridad.sql`. Completa las variables `ADMIN_*` si todavía no existe un usuario Admin.
 
 ## Ejecución
 
