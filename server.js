@@ -175,7 +175,7 @@ app.get('/api/data', async (_req, res) => {
   try {
     const [usuarios] = await pool.query('SELECT id_usuario, nombre_usuario, correo, telefono, rol FROM USUARIO ORDER BY id_usuario');
     const [mecanicos] = await pool.query('SELECT id_mecanico, id_usuario, especialidad, activo FROM MECANICO ORDER BY id_mecanico');
-    const [motos] = await pool.query('SELECT placa, id_cliente, marca, modelo, cilindraje FROM MOTO ORDER BY placa');
+    const [motos] = await pool.query('SELECT placa, id_cliente, marca, modelo, cilindraje, anio FROM MOTO ORDER BY placa');
     const [servicios] = await pool.query('SELECT id_servicio, nombre_servicio, descripcion, duracion_min, precio_base FROM SERVICIO ORDER BY id_servicio');
     const [citas] = await pool.query("SELECT id_cita, id_cliente, placa, id_mecanico, DATE_FORMAT(fecha_hora, '%Y-%m-%dT%H:%i') AS fecha_hora, estado, observaciones, motivo_rechazo FROM CITA ORDER BY fecha_hora DESC");
     const [detalles_cita] = await pool.query("SELECT id_cita, DATE_FORMAT(fecha_hora, '%Y-%m-%dT%H:%i') AS fecha_hora, id_servicio, nombre_servicio, precio_acordado FROM DETALLE_CITA");
@@ -259,12 +259,27 @@ app.delete('/api/mecanicos/:id', async (req, res) => {
 });
 
 // MOTO
+function normalizePlate(value) {
+  return String(value || '').trim().toUpperCase();
+}
+function isValidPlate(value) {
+  return /^[A-Z0-9-]{4,10}$/.test(value);
+}
+
 app.post('/api/motos', async (req, res) => {
   try {
-    const { placa, id_cliente, marca, modelo, cilindraje } = req.body;
+    const { placa, id_cliente, marca, modelo, cilindraje, anio } = req.body;
+    const placaNormalizada = normalizePlate(placa);
+    const anioMoto = Number(anio);
+    if (!isValidPlate(placaNormalizada)) {
+      return res.status(400).json({ error: 'La placa debe tener entre 4 y 10 letras, números o guiones.' });
+    }
+    if (!Number.isInteger(anioMoto) || anioMoto < 1900 || anioMoto > new Date().getFullYear() + 1) {
+      return res.status(400).json({ error: 'Ingresa un año válido para la moto.' });
+    }
     await pool.query(
-      'INSERT INTO MOTO (placa, id_cliente, marca, modelo, cilindraje) VALUES (?, ?, ?, ?, ?)',
-      [placa, id_cliente, marca, modelo, cilindraje || null]
+      'INSERT INTO MOTO (placa, id_cliente, marca, modelo, cilindraje, anio) VALUES (?, ?, ?, ?, ?, ?)',
+      [placaNormalizada, id_cliente, marca, modelo, cilindraje || null, anioMoto]
     );
     res.status(201).json({ ok: true });
   } catch (err) { handleDbError(res, err); }
@@ -272,10 +287,18 @@ app.post('/api/motos', async (req, res) => {
 
 app.put('/api/motos/:placa', async (req, res) => {
   try {
-    const { id_cliente, marca, modelo, cilindraje } = req.body;
+    const { id_cliente, marca, modelo, cilindraje, anio } = req.body;
+    const placaNormalizada = normalizePlate(req.params.placa);
+    const anioMoto = Number(anio);
+    if (!isValidPlate(placaNormalizada)) {
+      return res.status(400).json({ error: 'La placa debe tener entre 4 y 10 letras, números o guiones.' });
+    }
+    if (!Number.isInteger(anioMoto) || anioMoto < 1900 || anioMoto > new Date().getFullYear() + 1) {
+      return res.status(400).json({ error: 'Ingresa un año válido para la moto.' });
+    }
     await pool.query(
-      'UPDATE MOTO SET id_cliente=?, marca=?, modelo=?, cilindraje=? WHERE placa=?',
-      [id_cliente, marca, modelo, cilindraje || null, req.params.placa]
+      'UPDATE MOTO SET id_cliente=?, marca=?, modelo=?, cilindraje=?, anio=? WHERE placa=?',
+      [id_cliente, marca, modelo, cilindraje || null, anioMoto, placaNormalizada]
     );
     res.json({ ok: true });
   } catch (err) { handleDbError(res, err); }
@@ -283,7 +306,7 @@ app.put('/api/motos/:placa', async (req, res) => {
 
 app.delete('/api/motos/:placa', async (req, res) => {
   try {
-    await pool.query('DELETE FROM MOTO WHERE placa=?', [req.params.placa]);
+    await pool.query('DELETE FROM MOTO WHERE placa=?', [normalizePlate(req.params.placa)]);
     res.json({ ok: true });
   } catch (err) { handleDbError(res, err); }
 });

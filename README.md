@@ -33,3 +33,10 @@ npm start
 ```
 
 El panel usa una cookie de sesión `HttpOnly` y restringe las rutas API a usuarios con rol Admin.
+
+
+## Placas, año y servicios
+
+Las placas aceptan entre 4 y 10 letras, números o guiones y se guardan en mayúsculas. El formulario también solicita el año de la moto. Para la base Railway existente, ejecuta `migrations/002_placa_y_anio.sql` una sola vez antes de usar la versión nueva. En una instalación nueva, `taller_motos.sql` ya incluye placas alfanuméricas y año.
+
+Los servicios se asocian a una cita que contiene la placa de la moto. En la pestaña **Citas y Detalles**, crea una cita con la placa y luego agrega servicios desde el detalle de esa cita.

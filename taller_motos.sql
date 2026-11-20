@@ -35,11 +35,12 @@ CREATE TABLE MECANICO (
 -- Tabla: MOTO (relación 1:N con USUARIO)
 -- -----------------------------------------------------
 CREATE TABLE MOTO (
-  placa INT PRIMARY KEY, -- Cambiar a VARCHAR(10) si se requieren placas alfanuméricas
+  placa VARCHAR(10) PRIMARY KEY,
   id_cliente INT NOT NULL,
   marca VARCHAR(30) NOT NULL,
   modelo VARCHAR(30) NOT NULL,
   cilindraje INT,
+  anio SMALLINT UNSIGNED,
   CONSTRAINT fk_moto_cliente
     FOREIGN KEY (id_cliente) REFERENCES USUARIO(id_usuario)
     ON DELETE RESTRICT
@@ -63,7 +64,7 @@ CREATE TABLE SERVICIO (
 CREATE TABLE CITA (
   id_cita INT AUTO_INCREMENT PRIMARY KEY,
   id_cliente INT NOT NULL,
-  placa INT NOT NULL,
+  placa VARCHAR(10) NOT NULL,
   id_mecanico INT NOT NULL,
   fecha_hora DATETIME NOT NULL,
   estado VARCHAR(12) NOT NULL,
